@@ -1,21 +1,31 @@
+#run_job_bot.py
 from django.core.management.base import BaseCommand
-from job_bot.selenium_bot import JobApplicationBot  # Adjust the import according to your project structure
+from job_bot.bot import JobApplicationBot
 
 class Command(BaseCommand):
-    help = 'Runs the job application bot to apply for jobs automatically'
+    help = "Runs the job application bot to apply for jobs on selected platforms."
 
     def add_arguments(self, parser):
-        # Optionally add arguments to control which platforms or job queries to run
-        parser.add_argument('-p', '--platform', type=str, help='Specify the platform to apply on')
+        # Add an optional argument for specifying platforms
+        parser.add_argument(
+            '--platforms',
+            nargs='+',  # Accept multiple platform names
+            type=str,
+            help="List of platforms to run (e.g., --platforms linkedin naukri)"
+        )
 
     def handle(self, *args, **options):
-        platform = options.get('platform') if options.get('platform') else 'glassdoor'
-        self.stdout.write(f"Starting the job application bot for {platform}...")
-        
-        # Initialize and run your bot
-        bot = JobApplicationBot(platform)
-        bot.login()
-        # You might want to pass more parameters to search_and_apply based on command arguments
-        bot.search_and_apply("Software Engineer")  # Example job query
+        # Get the platforms from command arguments or use all by default
+        selected_platforms = options['platforms'] or ["linkedin", "glassdoor", "indeed", "naukri", "cutshort"]
+        job_query = "Software Engineer"
 
-        self.stdout.write(self.style.SUCCESS('Successfully ran the job application bot.'))
+        for platform in selected_platforms:
+            self.stdout.write(f"Starting applications on {platform.capitalize()}...")
+            try:
+                bot = JobApplicationBot(platform)
+                bot.run(job_query)
+                self.stdout.write(f"Completed applications on {platform.capitalize()}.\n")
+            except Exception as e:
+                self.stderr.write(f"Error while applying on {platform.capitalize()}: {e}")
+
+        self.stdout.write(self.style.SUCCESS("Selected applications completed successfully!"))
